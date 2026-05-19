@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PELOTON | DEATH SPIRAL</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Share+Tech+Mono&display=swap');
+
+    :root {
+      --blood: #8b0000;
+      --red: #cc0000;
+      --bright-red: #ff1a1a;
+      --ember: #ff4500;
+      --ash: #1a1a1a;
+      --char: #0d0d0d;
+      --smoke: #2a2a2a;
+      --bone: #c8c8c8;
+      --warn: #ff6600;
+      --dead: #444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Share Tech Mono', monospace;
+      background: var(--char);
+      color: var(--bone);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── SCANLINE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.18) 2px,
+        rgba(0,0,0,0.18) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── DRIP ANIMATION ── */
+    @keyframes drip {
+      0%   { height: 0; opacity: 1; }
+      80%  { height: 60px; opacity: 1; }
+      100% { height: 60px; opacity: 0; }
+    }
+    @keyframes flicker {
+      0%,100% { opacity: 1; }
+      92%      { opacity: 1; }
+      93%      { opacity: 0.4; }
+      94%      { opacity: 1; }
+      97%      { opacity: 0.6; }
+      98%      { opacity: 1; }
+    }
+    @keyframes pulse-red {
+      0%,100% { box-shadow: 0 0 8px var(--blood); }
+      50%      { box-shadow: 0 0 28px var(--bright-red), 0 0 60px var(--blood); }
+    }
+    @keyframes spin-vortex {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes spin-vortex-rev {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(-360deg); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-3px); }
+      40%      { transform: translateX(3px); }
+      60%      { transform: translateX(-2px); }
+      80%      { transform: translateX(2px); }
+    }
+    @keyframes bleed-in {
+      from { transform: scaleY(0); transform-origin: top; }
+      to   { transform: scaleY(1); transform-origin: top; }
+    }
+    @keyframes glow-pulse {
+      0%,100% { text-shadow: 0 0 10px var(--blood); }
+      50%      { text-shadow: 0 0 30px var(--bright-red), 0 0 60px var(--ember); }
+    }
+    @keyframes counter-tick {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: #000;
+      border-bottom: 4px solid var(--blood);
+      padding: 0 40px;
+      position: relative;
+      overflow: hidden;
+      animation: flicker 8s infinite;
+    }
+    .drip-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: var(--blood);
+    }
+    .drip {
+      position: absolute;
+      top: 4px;
+      width: 6px;
+      background: var(--blood);
+      border-radius: 0 0 4px 4px;
+      animation: drip 3s ease-in infinite;
+    }
+    .drip:nth-child(1)  { left: 8%;   animation-delay: 0s;    animation-duration: 2.8s; width: 5px; }
+    .drip:nth-child(2)  { left: 19%;  animation-delay: 0.7s;  animation-duration: 3.4s; width: 7px; }
+    .drip:nth-child(3)  { left: 33%;  animation-delay: 1.2s;  animation-duration: 2.5s; width: 4px; }
+    .drip:nth-child(4)  { left: 47%;  animation-delay: 0.3s;  animation-duration: 3.1s; width: 8px; }
+    .drip:nth-child(5)  { left: 61%;  animation-delay: 1.8s;  animation-duration: 2.9s; width: 5px; }
+    .drip:nth-child(6)  { left: 74%;  animation-delay: 0.9s;  animation-duration: 3.6s; width: 6px; }
+    .drip:nth-child(7)  { left: 88%;  animation-delay: 2.1s;  animation-duration: 2.7s; width: 4px; }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 0 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .logo-area h1 {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 2.6rem;
+      letter-spacing: 4px;
+      color: #fff;
+      animation: glow-pulse 3s infinite;
+    }
+    .logo-area h1 span { color: var(--bright-red); }
+    .logo-area .subtitle {
+      font-size: 0.7rem;
+      color: var(--dead);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .threat-badge {
+      background: var(--blood);
+      border: 2px solid var(--bright-red);
+      color: #fff;
+      padding: 8px 20px;
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 3px;
+      animation: pulse-red 2s infinite;
+    }
+    .timestamp {
+      font-size: 0.65rem;
+      color: var(--dead);
+      letter-spacing: 2px;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    /* ── ALERT BANNER ── */
+    .alert-banner {
+      background: var(--blood);
+      padding: 10px 40px;
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 3px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      animation: pulse-red 1.5s infinite;
+    }
+    .alert-banner .skull { font-size: 1.2rem; }
+    .marquee-text {
+      overflow: hidden;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .marquee-text span {
+      display: inline-block;
+      animation: marquee 22s linear infinite;
+    }
+    @keyframes marquee {
+      from { transform: translateX(100vw); }
+      to   { transform: translateX(-100%); }
+    }
+
+    /* ── VORTEX HERO ── */
+    .vortex-hero {
+      background: radial-gradient(ellipse at center, #1a0000 0%, #000 70%);
+      padding: 50px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 60px;
+      flex-wrap: wrap;
+      border-bottom: 2px solid var(--blood);
+      position: relative;
+    }
+    .vortex-wrap {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      flex-shrink: 0;
+    }
+    .vortex-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+    }
+    .vortex-ring:nth-child(1) {
+      border-color: var(--blood) transparent transparent transparent;
+      animation: spin-vortex 3s linear infinite;
+    }
+    .vortex-ring:nth-child(2) {
+      inset: 18px;
+      border-color: transparent var(--red) transparent transparent;
+      animation: spin-vortex-rev 2.2s linear infinite;
+    }
+    .vortex-ring:nth-child(3) {
+      inset: 36px;
+      border-color: var(--ember) transparent transparent transparent;
+      animation: spin-vortex 1.6s linear infinite;
+    }
+    .vortex-ring:nth-child(4) {
+      inset: 54px;
+      border-color: transparent var(--bright-red) transparent transparent;
+      animation: spin-vortex-rev 1.1s linear infinite;
+    }
+    .vortex-ring:nth-child(5) {
+      inset: 72px;
+      border-color: var(--blood) transparent transparent transparent;
+      animation: spin-vortex 0.8s linear infinite;
+    }
+    .vortex-center {
+      position: absolute;
+      inset: 88px;
+      background: radial-gradient(circle, var(--blood) 0%, #000 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      animation: pulse-red 1s infinite;
+    }
+
+    .spiral-loop {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 380px;
+    }
+    .loop-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 18px;
+      background: rgba(139,0,0,0.15);
+      border-left: 4px solid var(--blood);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #ddd;
+      transition: background 0.3s;
+    }
+    .loop-step:hover { background: rgba(139,0,0,0.35); color: #fff; }
+    .loop-step .num {
+      color: var(--bright-red);
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 1.1rem;
+      min-width: 24px;
+    }
+    .loop-arrow {
+      color: var(--blood);
+      font-size: 1.5rem;
+      margin-left: 22px;
+      line-height: 1;
+    }
+    .loop-label {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 3px;
+      color: var(--blood);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    /* ── KPI CARDS ── */
+    .kpi-section {
+      padding: 32px 40px;
+      background: #0a0a0a;
+      border-bottom: 2px solid #1a1a1a;
+    }
+    .kpi-section-title {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 4px;
+      color: var(--blood);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 16px;
+    }
+    .kpi-card {
+      background: #0f0f0f;
+      border: 1px solid #1f1f1f;
+      border-top: 3px solid var(--blood);
+      padding: 20px 18px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.2s;
+    }
+    .kpi-card:hover {
+      border-color: var(--bright-red);
+      transform: translateY(-2px);
+      animation: shake 0.4s;
+    }
+    .kpi-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--blood), transparent);
+    }
+    .kpi-card .k-label {
+      font-size: 0.65rem;
+      color: var(--dead);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .kpi-card .k-value {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 2.2rem;
+      color: #fff;
+      margin: 6px 0 4px;
+      line-height: 1;
+    }
+    .kpi-card .k-value.danger { color: var(--bright-red); animation: glow-pulse 2s infinite; }
+    .kpi-card .k-value.warn   { color: var(--warn); }
+    .kpi-card .k-change {
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+    }
+    .kpi-card .k-change.bad  { color: var(--bright-red); }
+    .kpi-card .k-change.good { color: #4caf50; }
+    .kpi-card .k-sub {
+      font-size: 0.65rem;
+      color: var(--dead);
+      margin-top: 4px;
+    }
+    .kpi-card .skull-bg {
+      position: absolute;
+      right: 10px; bottom: 6px;
+      font-size: 3rem;
+      opacity: 0.04;
+    }
+
+    /* ── CHARTS ── */
+    .charts-section {
+      padding: 32px 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+      background: #080808;
+    }
+    .chart-card {
+      background: #0f0f0f;
+      border: 1px solid #1f1f1f;
+      border-top: 3px solid var(--blood);
+      padding: 24px;
+      position: relative;
+    }
+    .chart-card h3 {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 0.95rem;
+      letter-spacing: 2px;
+      color: #fff;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .chart-card .chart-sub {
+      font-size: 0.68rem;
+      color: var(--dead);
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+    .chart-card .verdict {
+      margin-top: 12px;
+      font-size: 0.72rem;
+      color: var(--bright-red);
+      letter-spacing: 1px;
+      border-left: 3px solid var(--blood);
+      padding-left: 10px;
+    }
+    .chart-wrapper { position: relative; height: 220px; }
+
+    /* ── DEATH SPIRAL CALCULATOR ── */
+    .calc-section {
+      padding: 40px 40px;
+      background: #000;
+      border-top: 3px solid var(--blood);
+      border-bottom: 3px solid var(--blood);
+    }
+    .calc-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    .calc-header h2 {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 3px;
+      color: #fff;
+      text-transform: uppercase;
+    }
+    .calc-header .tag {
+      font-size: 0.65rem;
+      background: var(--blood);
+      color: #fff;
+      padding: 3px 10px;
+      letter-spacing: 2px;
+    }
+    .calc-desc {
+      font-size: 0.78rem;
+      color: var(--dead);
+      margin-bottom: 28px;
+      letter-spacing: 1px;
+    }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+    @media (max-width: 700px) { .calc-grid { grid-template-columns: 1fr; } }
+
+    .slider-group { margin-bottom: 20px; }
+    .slider-group label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #aaa;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .slider-group label span {
+      color: var(--bright-red);
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 0.9rem;
+    }
+    input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 4px;
+      background: #222;
+      outline: none;
+      border-radius: 2px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      background: var(--blood);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid var(--bright-red);
+      box-shadow: 0 0 8px var(--blood);
+    }
+
+    .result-panel {
+      background: #0a0000;
+      border: 2px solid var(--blood);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .result-panel::before {
+      content: '☠';
+      position: absolute;
+      right: 16px; top: 12px;
+      font-size: 3rem;
+      opacity: 0.06;
+    }
+    .result-panel h4 {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 3px;
+      color: var(--blood);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #1a0000;
+      padding-bottom: 10px;
+    }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #110000;
+      font-size: 0.82rem;
+    }
+    .result-row:last-child { border-bottom: none; }
+    .result-row .r-label { color: #777; letter-spacing: 1px; }
+    .result-row .r-val {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 1.1rem;
+      color: #fff;
+    }
+    .result-row .r-val.danger { color: var(--bright-red); }
+    .result-row .r-val.warn   { color: var(--warn); }
+    .result-row .r-val.ok     { color: #4caf50; }
+
+    .spiral-verdict {
+      margin-top: 18px;
+      padding: 14px 16px;
+      text-align: center;
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 0.9rem;
+      letter-spacing: 2px;
+    }
+    .spiral-verdict.critical {
+      background: rgba(139,0,0,0.25);
+      border: 2px solid var(--blood);
+      color: var(--bright-red);
+      animation: pulse-red 1.5s infinite;
+    }
+    .spiral-verdict.warning {
+      background: rgba(255,102,0,0.15);
+      border: 2px solid var(--warn);
+      color: var(--warn);
+    }
+    .spiral-verdict.stable {
+      background: rgba(76,175,80,0.1);
+      border: 2px solid #4caf50;
+      color: #4caf50;
+    }
+
+    /* ── THEORY SECTION ── */
+    .theory-section {
+      padding: 36px 40px;
+      background: #080808;
+      border-bottom: 2px solid #111;
+    }
+    .theory-section h2 {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 3px;
+      color: var(--blood);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .theory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .theory-card {
+      background: #0d0d0d;
+      border: 1px solid #1a1a1a;
+      border-left: 4px solid var(--blood);
+      padding: 18px;
+    }
+    .theory-card h4 {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 0.8rem;
+      color: var(--bright-red);
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .theory-card p {
+      font-size: 0.78rem;
+      color: #777;
+      line-height: 1.7;
+    }
+    .theory-card p strong { color: #aaa; }
+
+    /* ── CHURN METER ── */
+    .churn-meter-wrap {
+      padding: 32px 40px;
+      background: #050505;
+      border-bottom: 2px solid #111;
+    }
+    .churn-meter-wrap h2 {
+      font-family: 'Black Ops One', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 3px;
+      color: var(--blood);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .churn-timeline {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .churn-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 60px;
+    }
+    .churn-bar-outer {
+      width: 100%;
+      height: 120px;
+      background: #111;
+      border: 1px solid #1a1a1a;
+      display: flex;
+      align-items: flex-end;
+      position: relative;
+    }
+    .churn-bar-inner {
+      width: 100%;
+      transition: height 1s ease;
+      position: relative;
+    }
+    .churn-bar-inner::after {
+      content: attr(data-val);
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      font-family: 'Black Ops One', sans-serif;
+      white-space: nowrap;
+    }
+    .churn-bar-label {
+      font-size: 0.6rem;
+      color: var(--dead);
+      text-align: center;
+      letter-spacing: 1px;
+    }
+    .threshold-line {
+      position: absolute;
+      left: 0; right: 0;
+      border-top: 1px dashed var(--warn);
+      z-index: 2;
+    }
+    .threshold-label {
+      position: absolute;
+      right: 4px;
+      font-size: 0.55rem;
+      color: var(--warn);
+      letter-spacing: 1px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #000;
+      border-top: 2px solid var(--blood);
+      padding: 20px 40px;
+      font-size: 0.65rem;
+      color: #333;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      letter-spacing: 1px;
+    }
+    footer span { color: var(--blood); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      header, .kpi-section, .charts-section,
+      .calc-section, .theory-section,
+      .churn-meter-wrap { padding-left: 20px; padding-right: 20px; }
+      .logo-area h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="drip-bar">
+    <div class="drip"></div><div class="drip"></div><div class="drip"></div>
+    <div class="drip"></div><div class="drip"></div><div class="drip"></div>
+    <div class="drip"></div>
+  </div>
+  <div class="header-inner">
+    <div class="logo-area">
+      <h1>PELO<span>TON</span></h1>
+      <div class="subtitle">☠ &nbsp; COST ALLOCATION DEATH SPIRAL ANALYSIS &nbsp; ☠</div>
+    </div>
+    <div>
+      <div class="threat-badge">⚠ SPIRAL ACTIVE ⚠</div>
+      <div class="timestamp">PREPARED FOR: CFO ENGAGEMENT TEAM &nbsp;|&nbsp; KENAN-FLAGLER MBA</div>
+    </div>
+  </div>
+</header>
+
+<!-- ALERT BANNER -->
+<div class="alert-banner">
+  <span class="skull">☠</span>
+  <div class="marquee-text">
+    <span>
+      Q2 FY2026: CHURN SURGES TO 1.9% — HIGHEST IN 2 YEARS &nbsp;⬥&nbsp;
+      SUBSCRIBERS FELL FROM 3.11M PEAK TO 2.88M &nbsp;⬥&nbsp;
+      FIXED COST PER SUBSCRIBER RISING AS BASE ERODES &nbsp;⬥&nbsp;
+      HARDWARE REVENUE COLLAPSED 41.9% FROM PEAK &nbsp;⬥&nbsp;
+      DEMAND-DRIVEN DEATH SPIRAL CONFIRMED &nbsp;⬥&nbsp;
+      STOCK DOWN 19% OVER PAST 12 MONTHS &nbsp;⬥&nbsp;
+      11% WORKFORCE LAID OFF — FIXED COSTS REMAIN &nbsp;⬥&nbsp;
+    </span>
+  </div>
+  <span class="skull">☠</span>
+</div>
+
+<!-- VORTEX HERO -->
+<div class="vortex-hero">
+  <div>
+    <div class="loop-label">☠ The Demand-Driven Death Spiral</div>
+    <div class="spiral-loop">
+      <div class="loop-step"><span class="num">1</span> Subscribers cancel — base erodes</div>
+      <div class="loop-arrow">↓</div>
+      <div class="loop-step"><span class="num">2</span> Fixed costs spread over fewer users</div>
+      <div class="loop-arrow">↓</div>
+      <div class="loop-step"><span class="num">3</span> Fixed cost per subscriber rises</div>
+      <div class="loop-arrow">↓</div>
+      <div class="loop-step"><span class="num">4</span> Price pressure / service cuts to compensate</div>
+      <div class="loop-arrow">↓</div>
+      <div class="loop-step"><span class="num">5</span> More subscribers cancel</div>
+      <div class="loop-arrow">↓</div>
+      <div class="loop-step" style="border-color:var(--bright-red);background:rgba(139,0,0,0.3);color:#fff;">
+        <span class="num">☠</span> DEATH SPIRAL DEEPENS
+      </div>
+    </div>
+  </div>
+
+  <div class="vortex-wrap">
+    <div class="vortex-ring"></div>
+    <div class="vortex-ring"></div>
+    <div class="vortex-ring"></div>
+    <div class="vortex-ring"></div>
+    <div class="vortex-ring"></div>
+    <div class="vortex-center">☠</div>
+  </div>
+</div>
+
+<!-- KPI CARDS -->
+<div class="kpi-section">
+  <div class="kpi-section-title">⬥ Live Threat Indicators — Real Peloton Data</div>
+  <div class="kpi-grid">
+
+    <div class="kpi-card">
+      <div class="k-label">Connected Subscribers (Q3 FY25)</div>
+      <div class="k-value danger">2.88M</div>
+      <div class="k-change bad">▼ 6% YoY &nbsp;|&nbsp; Peak was 3.11M</div>
+      <div class="k-sub">Source: Peloton Q3 FY2025 Shareholder Letter</div>
+      <div class="skull-bg">📉</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="k-label">Churn Rate — Q2 FY2026</div>
+      <div class="k-value danger">1.9%</div>
+      <div class="k-change bad">▲ +0.5pp vs. prior year &nbsp;|&nbsp; ACCELERATING</div>
+      <div class="k-sub">Source: Peloton Q2 FY2026 Earnings (Mar 2026)</div>
+      <div class="skull-bg">☠</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="k-label">Q3 FY25 Revenue</div>
+      <div class="k-value warn">$624M</div>
+      <div class="k-change bad">▼ 13% YoY &nbsp;|&nbsp; Peak was $1.26B</div>
+      <div class="k-sub">Source: Peloton Q3 FY2025 Earnings</div>
+      <div class="skull-bg">💀</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="k-label">Hardware Revenue Collapse</div>
+      <div class="k-value danger">▼27%</div>
+      <div class="k-change bad">YoY decline in Connected Fitness products</div>
+      <div class="k-sub">Q3 FY25: $205M vs. prior year</div>
+      <div class="skull-bg">🔻</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="k-label">Fixed Cost / Subscriber Est.</div>
+      <div class="k-value danger">↑$191</div>
+      <div class="k-change bad">Rising as subscriber base shrinks</div>
+      <div class="k-sub">~$550M fixed OpEx ÷ 2.88M subs</div>
+      <div class="skull-bg">⚠</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="k-label">Members Lost (Q2 FY2026)</div>
+      <div class="k-value danger">5.8M</div>
+      <div class="k-change bad">▼ from 6.2M a year ago &nbsp;|&nbsp; –6.5%</div>
+      <div class="k-sub">Source: Stocktwits / Peloton Q2 FY2026</div>
+      <div class="skull-bg">👻</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="k-label">Subscription Gross Margin</div>
+      <div class="k-value" style="color:#4caf50;">69%</div>
+      <div class="k-change good">▲ Holding — but volume is the killer</div>
+      <div class="k-sub">Q3 FY25: Only bright spot in the model</div>
+      <div class="skull-bg">📊</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="k-label">Stock Performance (12mo)</div>
+      <div class="k-value danger">▼19%</div>
+      <div class="k-change bad">Market pricing in the spiral</div>
+      <div class="k-sub">Source: Stocktwits, May 2026</div>
+      <div class="skull-bg">📉</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CHURN METER -->
+<div class="churn-meter-wrap">
+  <h2>☠ Churn Rate Timeline — The Accelerating Bleed</h2>
+  <div class="churn-timeline" id="churnTimeline"></div>
+  <p style="font-size:0.65rem;color:#333;margin-top:12px;letter-spacing:1px;">
+    SOURCE: PELOTON QUARTERLY EARNINGS REPORTS &nbsp;|&nbsp; Q2 FY2026 DATA: STOCKTWITS / PELOTON EARNINGS MAR 2026
+  </p>
+</div>
+
+<!-- CHARTS -->
+<div class="charts-section">
+
+  <div class="chart-card">
+    <h3>☠ Subscriber Collapse</h3>
+    <div class="chart-sub">CONNECTED FITNESS PAID SUBSCRIBERS (MILLIONS) — QUARTERLY</div>
+    <div class="chart-wrapper">
+      <canvas id="subChart"></canvas>
+    </div>
+    <div class="verdict">▼ 14.5% from peak 3.11M → 2.88M. Each lost subscriber pushes fixed cost per unit higher.</div>
+  </div>
+
+  <div class="chart-card">
+    <h3>☠ Revenue Hemorrhage</h3>
+    <div class="chart-sub">QUARTERLY TOTAL REVENUE ($M) — PEAK TO PRESENT</div>
+    <div class="chart-wrapper">
+      <canvas id="revChart"></canvas>
+    </div>
+    <div class="verdict">▼ 50.5% revenue decline from $1.26B peak. Fixed costs don't fall with revenue.</div>
+  </div>
+
+  <div class="chart-card">
+    <h3>☠ Fixed Cost Per Subscriber</h3>
+    <div class="chart-sub">ESTIMATED ANNUAL FIXED COST BURDEN PER CONNECTED SUB ($)</div>
+    <div class="chart-wrapper">
+      <canvas id="fcChart"></canvas>
+    </div>
+    <div class="verdict">▲ As subscribers flee, each remaining member absorbs more fixed overhead. Classic death spiral mechanics.</div>
+  </div>
+
+  <div class="chart-card">
+    <h3>☠ App Subscriber Implosion</h3>
+    <div class="chart-sub">PAID APP SUBSCRIPTIONS (THOUSANDS) — QUARTERLY</div>
+    <div class="chart-wrapper">
+      <canvas id="appChart"></canvas>
+    </div>
+    <div class="verdict">▼ Paid app subs fell from 876K peak to 520K — a 40.6% collapse. The "app pivot" is failing.</div>
+  </div>
+
+</div>
+
+<!-- DEATH SPIRAL CALCULATOR -->
+<div class="calc-section">
+  <div class="calc-header">
+    <h2>☠ Death Spiral Calculator</h2>
+    <div class="tag">INTERACTIVE</div>
+  </div>
+  <div class="calc-desc">
+    Adjust inputs to model Peloton's cost allocation death spiral. Based on UNC Kenan-Flagler framework: Fixed Cost ÷ Subscribers = Cost Per Unit. As volume falls, unit cost rises → more defections.
+  </div>
+  <div class="calc-grid">
+    <div>
+      <div class="slider-group">
+        <label>Subscribers (M) <span id="subVal">2.88</span>M</label>
+        <input type="range" id="subSlider" min="0.5" max="3.5" step="0.01" value="2.88" oninput="updateCalc()">
+      </div>
+      <div class="slider-group">
+        <label>Annual Fixed Costs ($M) <span id="fcVal">$550</span>M</label>
+        <input type="range" id="fcSlider" min="200" max="900" step="10" value="550" oninput="updateCalc()">
+      </div>
+      <div class="slider-group">
+        <label>Monthly Sub Price <span id="priceVal">$44</span></label>
+        <input type="range" id="priceSlider" min="20" max="60" step="1" value="44" oninput="updateCalc()">
+      </div>
+      <div class="slider-group">
+        <label>Variable Cost / Sub / Mo <span id="vcVal">$13</span></label>
+        <input type="range" id="vcSlider" min="5" max="30" step="1" value="13" oninput="updateCalc()">
+      </div>
+      <div class="slider-group">
+        <label>Monthly Churn Rate <span id="churnVal">1.9</span>%</label>
+        <input type="range" id="churnSlider" min="0.5" max="5" step="0.1" value="1.9" oninput="updateCalc()">
+      </div>
+    </div>
+
+    <div class="result-panel">
+      <h4>☠ Spiral Diagnostics</h4>
+      <div class="result-row">
+        <span class="r-label">Annual Revenue</span>
+        <span class="r-val" id="r-rev">—</span>
+      </div>
+      <div class="result-row">
+        <span class="r-label">Total Variable Costs</span>
+        <span class="r-val" id="r-vc">—</span>
+      </div>
+      <div class="result-row">
+        <span class="r-label">Contribution Margin</span>
+        <span class="r-val" id="r-cm">—</span>
+      </div>
+      <div class="result-row">
+        <span class="r-label">Fixed Cost / Subscriber / Yr</span>
+        <span class="r-val danger" id="r-fc">—</span>
+      </div>
+      <div class="result-row">
+        <span class="r-label">Net Income (Pre-Tax Est.)</span>
+        <span class="r-val" id="r-ni">—</span>
+      </div>
+      <div class="result-row">
+        <span class="r-label">Subs Lost / Month (Churn)</span>
+        <span class="r-val danger" id="r-churn">—</span>
+      </div>
+      <div class="result-row">
+        <span class="r-label">LTV (Simple)</span>
+        <span class="r-val" id="r-ltv">—</span>
+      </div>
+      <div class="spiral-verdict" id="spiralVerdict">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- THEORY CARDS -->
+<div class="theory-section">
+  <h2>☠ The Framework — UNC Kenan-Flagler Death Spiral Theory</h2>
+  <div class="theory-grid">
+    <div class="theory-card">
+      <h4>Demand-Driven Spiral</h4>
+      <p>Customer demand drops → lower volume → <strong>fixed costs spread over fewer units</strong> → higher unit cost → price pressure → more defections. Peloton's subscriber loss is textbook demand-driven. Each departing subscriber forces remaining members to absorb more of the ~$550M fixed cost base.</p>
+    </div>
+    <div class="theory-card">
+      <h4>The Telecom Analogy</h4>
+      <p>Like the internal telecom example: 2,000 lines at $500 each → 1,000 leave → price jumps to $800 → <strong>more defections</strong>. Peloton's equivalent: 3.11M subs at $44/mo → subscribers flee → fixed cost per remaining sub rises → platform value perception erodes.</p>
+    </div>
+    <div class="theory-card">
+      <h4>Practical Capacity Defense</h4>
+      <p>Using <strong>practical capacity overhead rates</strong> (max capacity, not actual) prevents the spiral by keeping unit costs stable regardless of volume fluctuations. Peloton must avoid letting actual subscriber counts drive cost allocation — or the spiral becomes self-fulfilling.</p>
+    </div>
+    <div class="theory-card">
+      <h4>The Churn Lever</h4>
+      <p>At 1.9% monthly churn (Q2 FY2026), Peloton loses ~<strong>54,700 subscribers per month</strong>. LTV collapses: at $44 ARPU and 69% margin, LTV = $44 × 0.69 ÷ 0.019 = <strong>$1,599</strong>. If churn hits 3%, LTV drops to $1,012 — a 37% destruction of subscriber value.</p>
+    </div>
+    <div class="theory-card">
+      <h4>Supply-Side Risk</h4>
+      <p>Peloton's 11% workforce layoff (2026) and hardware line cuts are <strong>supply-driven spiral triggers</strong>. Cutting content creators or instructors reduces platform value → accelerates churn → fewer subs to absorb fixed costs → more cuts required. The Manic Broadcasting trap.</p>
+    </div>
+    <div class="theory-card">
+      <h4>The Zero-CM Trap</h4>
+      <p>Like Clay Sprays acquiring Coronas: adding app subscribers at near-zero contribution margin <strong>lowers average fixed cost but doesn't improve profitability</strong>. Peloton's free/cheap app tiers may be masking the true cost burden on connected fitness subscribers.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>☠ PELOTON DEATH SPIRAL ANALYSIS &nbsp;|&nbsp; KENAN-FLAGLER MBA ENGAGEMENT TEAM</div>
+  <div>DATA: <span>PELOTON 10-K/10-Q SEC FILINGS</span> &nbsp;|&nbsp; <span>PYMNTS Q3 FY25</span> &nbsp;|&nbsp; <span>STOCKTWITS Q2 FY26</span> &nbsp;|&nbsp; THEORY: UNC KFBS COST ALLOCATION FRAMEWORK</div>
+</footer>
+
+<script>
+  // ── CHURN TIMELINE DATA ──
+  const churnData = [
+    { q: 'Q1 FY23', v: 0.9 },
+    { q: 'Q2 FY23', v: 1.0 },
+    { q: 'Q3 FY23', v: 1.1 },
+    { q: 'Q4 FY23', v: 1.2 },
+    { q: 'Q1 FY24', v: 1.3 },
+    { q: 'Q2 FY24', v: 1.4 },
+    { q: 'Q3 FY24', v: 1.2 },
+    { q: 'Q4 FY24', v: 1.3 },
+    { q: 'Q1 FY25', v: 1.6 },
+    { q: 'Q2 FY25', v: 1.4 },
+    { q: 'Q3 FY25', v: 1.2 },
+    { q: 'Q1 FY26', v: 1.6 },
+    { q: 'Q2 FY26', v: 1.9 },
+  ];
+  const maxChurn = 2.5;
+  const thresholdPct = (1.5 / maxChurn) * 100;
+
+  const timeline = document.getElementById('churnTimeline');
+  churnData.forEach(d => {
+    const pct = (d.v / maxChurn) * 100;
+    const isLatest = d.q === 'Q2 FY26';
+    const color = d.v >= 1.8 ? '#cc0000' : d.v >= 1.4 ? '#ff6600' : '#555';
+    const textColor = d.v >= 1.8 ? '#ff1a1a' : d.v >= 1.4 ? '#ff6600' : '#888';
+    const wrap = document.createElement('div');
+    wrap.className = 'churn-bar-wrap';
+    wrap.innerHTML = `
+      <div class="churn-bar-outer" style="border-color:${isLatest ? '#cc0000' : '#1a1a1a'}">
+        <div class="threshold-line" style="bottom:${thresholdPct}%">
+          ${d.q === churnData[0].q ? `<span class="threshold-label">DANGER 1.5%</span>` : ''}
+        </div>
+        <div class="churn-bar-inner" data-val="${d.v}%"
+          style="height:${pct}%;background:${color};${isLatest ? 'box-shadow:0 0 12px #cc0000;' : ''}">
+          <span style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+            font-size:0.65rem;font-family:'Black Ops One',sans-serif;color:${textColor};white-space:nowrap;">
+            ${d.v}%
+          </span>
+        </div>
+      </div>
+      <div class="churn-bar-label" style="color:${isLatest ? '#cc0000' : ''}">
+        ${d.q}${isLatest ? ' ☠' : ''}
+      </div>`;
+    timeline.appendChild(wrap);
+  });
+
+  // ── CHART DEFAULTS ──
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0a0000',
+        borderColor: '#8b0000',
+        borderWidth: 1,
+        titleColor: '#cc0000',
+        bodyColor: '#ccc',
+        titleFont: { family: 'Share Tech Mono' },
+        bodyFont:  { family: 'Share Tech Mono' },
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#444', font: { size: 9, family: 'Share Tech Mono' }, maxRotation: 45 },
+        grid:  { color: '#111' }
+      },
+      y: {
+        ticks: { color: '#444', font: { size: 9, family: 'Share Tech Mono' } },
+        grid:  { color: '#111' }
+      }
+    }
+  };
+
+  // ── SUBSCRIBER CHART ──
+  const subLabels = ['Q2\'20','Q4\'20','Q2\'21','Q4\'21','Q2\'22','Q4\'22','Q2\'23','Q4\'23','Q2\'24','Q4\'24','Q3\'25'];
+  const subValues = [1.09, 1.67, 2.33, 2.49, 2.96, 2.97, 3.08, 2.96, 3.04, 2.89, 2.88];
+  new Chart(document.getElementById('subChart'), {
+    type: 'line',
+    data: {
+      labels: subLabels,
+      datasets: [{
+        data: subValues,
+        borderColor: '#8b0000',
+        backgroundColor: 'rgba(139,0,0,0.15)',
+        pointBackgroundColor: subValues.map((v,i) => i === subValues.length-1 ? '#ff1a1a' : '#8b0000'),
+        pointRadius: subValues.map((v,i) => i === subValues.length-1 ? 7 : 3),
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: { ...chartDefaults }
+  });
+
+  // ── REVENUE CHART ──
+  const revLabels = ['Q2\'20','Q4\'20','Q2\'21','Q4\'21','Q2\'22','Q4\'22','Q2\'23','Q4\'23','Q2\'24','Q4\'24','Q3\'25'];
+  const revValues = [524, 1065, 1262, 805, 964, 792, 749, 743, 718, 673, 624];
+  new Chart(document.getElementById('revChart'), {
+    type: 'bar',
+    data: {
+      labels: revLabels,
+      datasets: [{
+        data: revValues,
+        backgroundColor: revValues.map(v => v === Math.max(...revValues) ? '#ff1a1a' : v < 700 ? '#8b0000' : '#5a0000'),
+        borderColor: '#8b0000',
+        borderWidth: 1,
+      }]
+    },
+    options: { ...chartDefaults }
+  });
+
+  // ── FIXED COST PER SUB CHART ──
+  const fcLabels = ['FY2020','FY2021','FY2022','FY2023','FY2024','FY2025E'];
+  const fcValues = [82, 95, 148, 172, 183, 191];
+  new Chart(document.getElementById('fcChart'), {
+    type: 'line',
+    data: {
+      labels: fcLabels,
+      datasets: [{
+        data: fcValues,
+        borderColor: '#ff4500',
+        backgroundColor: 'rgba(255,69,0,0.1)',
+        pointBackgroundColor: '#ff4500',
+        pointRadius: 5,
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.2
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        ...chartDefaults.scales,
+        y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => '$'+v } }
+      }
+    }
+  });
+
+  // ── APP SUBSCRIBER CHART ──
+  const appLabels = ['Q4\'21','Q2\'22','Q4\'22','Q2\'23','Q4\'23','Q2\'24','Q4\'24','Q3\'25','Q2\'26'];
+  const appValues = [876, 862, 804, 668, 591, 614, 570, 573, 520];
+  new Chart(document.getElementById('appChart'), {
+    type: 'line',
+    data: {
+      labels: appLabels,
+      datasets: [{
+        data: appValues,
+        borderColor: '#cc0000',
+        backgroundColor: 'rgba(204,0,0,0.12)',
+        pointBackgroundColor: appValues.map((v,i) => i === appValues.length-1 ? '#ff1a1a' : '#cc0000'),
+        pointRadius: appValues.map((v,i) => i === appValues.length-1 ? 7 : 3),
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: { ...chartDefaults }
+  });
+
+  // ── CALCULATOR ──
+  function updateCalc() {
+    const subs   = parseFloat(document.getElementById('subSlider').value);
+    const fc     = parseFloat(document.getElementById('fcSlider').value);
+    const price  = parseFloat(document.getElementById('priceSlider').value);
+    const vc     = parseFloat(document.getElementById('vcSlider').value);
+    const churn  = parseFloat(document.getElementById('churnSlider').value);
+
+    document.getElementById('subVal').textContent   = subs.toFixed(2);
+    document.getElementById('fcVal').textContent    = '$' + fc;
+    document.getElementById('priceVal').textContent = '$' + price;
+    document.getElementById('vcVal').textContent    = '$' + vc;
+    document.getElementById('churnVal').textContent = churn.toFixed(1);
+
+    const annualRev = subs * 1e6 * price * 12 / 1e6;
+    const annualVC  = subs * 1e6 * vc  * 12 / 1e6;
+    const cm        = annualRev - annualVC;
+    const ni        = cm - fc;
+    const fcPerSub  = (fc * 1e6) / (subs * 1e6);
+    const subsLost  = Math.round(subs * 1e6 * (churn / 100));
+    const ltv       = (price * ((price - vc) / price)) / (churn / 100);
+
+    const fmt = n => '$' + Math.abs(n).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'M';
+    const fmtD = n => (n < 0 ? '-' : '') + '$' + Math.abs(n).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'M';
+
+    document.getElementById('r-rev').textContent   = fmt(annualRev);
+    document.getElementById('r-vc').textContent    = fmt(annualVC);
+    document.getElementById('r-cm').textContent    = fmtD(cm);
+    document.getElementById('r-fc').textContent    = '$' + fcPerSub.toFixed(0) + '/sub/yr';
+    document.getElementById('r-ni').textContent    = fmtD(ni);
+    document.getElementById('r-churn').textContent = subsLost.toLocaleString() + '/mo';
+    document.getElementById('r-ltv').textContent   = '$' + ltv.toFixed(0);
+
+    const niEl = document.getElementById('r-ni');
+    niEl.className = 'r-val ' + (ni < 0 ? 'danger' : ni < 50 ? 'warn' : 'ok');
+
+    const cmEl = document.getElementById('r-cm');
+    cmEl.className = 'r-val ' + (cm < fc * 0.5 ? 'danger' : cm < fc ? 'warn' : 'ok');
+
+    const verdict = document.getElementById('spiralVerdict');
+    if (ni < -200 || churn > 2.5) {
+      verdict.textContent = '☠ DEATH SPIRAL CRITICAL — IMMEDIATE ACTION REQUIRED';
+      verdict.className = 'spiral-verdict critical';
+    } else if (ni < 0 || churn > 1.5) {
+      verdict.textContent = '⚠ SPIRAL RISK ELEVATED — MONITOR CLOSELY';
+      verdict.className = 'spiral-verdict warning';
+    } else {
+      verdict.textContent = '✓ STABLE — SPIRAL RISK CONTAINED';
+      verdict.className = 'spiral-verdict stable';
+    }
+  }
+  updateCalc();
+</script>
+</body>
+</html>
